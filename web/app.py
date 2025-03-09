@@ -1,3 +1,4 @@
+from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
 import os
 from typing import List, Tuple
@@ -46,28 +47,12 @@ kg = Neo4jGraph(
     database=NEO4J_DATABASE,
 )
 
-# Retrieve summary vector index from Neo4j
-summary_vector_index = Neo4jVector.from_existing_graph(
-    GoogleGenerativeAIEmbeddings(
-        google_api_key=GOOGLE_API_KEY, model="models/embedding-001"
-    ),  # use embedding-001
-    search_type="hybrid",
-    node_label="Summary",
-    text_node_properties=["summary"],
-    embedding_node_property="embedding",
-)
-
 # Extract entities from text
-class SummaryEntities(BaseModel):
-    """Identifying information about entities."""
+class Entities(BaseModel):
+    """Identifying information about problem-related entities in a customer support ticket."""
 
     names: List[str] = Field(
         ...,
-        # description=(
-        #     "List of issues, problems, or troubles described in the support ticket summary. "
-        #     "This includes error messages, system failures, product malfunctions, service disruptions, "
-        #     "user complaints, or any other reported difficulties."
-        # ),
         description=(
             "A list of problem-related entities extracted from the customer support ticket summary, representing specific issues, "
             "troubles, or technical problems mentioned in the text. These entities include descriptions of malfunctions, errors, "
@@ -92,14 +77,7 @@ prompt = ChatPromptTemplate.from_messages(
         ),
     ]
 )
-entity_chain = prompt | chat.with_structured_output(SummaryEntities)
-# Test it out:
-# res = entity_chain.invoke(
-#     {
-#         "question": "Customer reported a login issue and slow performance with LinkedIn"
-#     }
-# ).names
-# print(res)
+entity_chain = prompt | chat.with_structured_output(Entities)
 
 kg.query("CREATE FULLTEXT INDEX entity IF NOT EXISTS FOR (e:__Entity__) ON EACH [e.id]")
 
@@ -111,7 +89,7 @@ def generate_full_text_query(input: str) -> str:
     It processes the input string by splitting it into words and appending a
     similarity threshold (~2 changed characters) to each word, then combines
     them using the AND operator. Useful for mapping entities from user questions
-    to database values, and allows for some misspelings.
+    to database values, and allows for some misspellings.
     """
     full_text_query = ""
     words = [el for el in remove_lucene_chars(input).split() if el]
@@ -121,7 +99,6 @@ def generate_full_text_query(input: str) -> str:
     return full_text_query.strip()
 
 
-# Fulltext index query
 def structured_retriever(question: str) -> str:
     """
     Collects the neighborhood of entities mentioned
@@ -147,12 +124,20 @@ def structured_retriever(question: str) -> str:
             """,
             {"query": generate_full_text_query(entity)},
         )
-        # print(response)
         result += "\n".join([el["output"] for el in response])
     return result
 
 
-# Final retrieval step
+summary_vector_index = Neo4jVector.from_existing_graph(
+    GoogleGenerativeAIEmbeddings(
+        google_api_key=GOOGLE_API_KEY, model="models/embedding-001"
+    ),
+    search_type="hybrid",
+    node_label="Summary",
+    text_node_properties=["summary"],
+    embedding_node_property="embedding",
+)
+
 def retriever(question: str):
     print(f"Search query: {question}")
     structured_data = structured_retriever(question)
@@ -162,14 +147,12 @@ def retriever(question: str):
     final_data = f"""Structured data:
         {structured_data}
         Unstructured data:
-        {"#Summary ". join(unstructured_data)}
+        {"#Summary ".join(unstructured_data)}
         """
     print(f"\nFinal Data::: ==>{final_data}")
     return final_data
 
 
-# Define the RAG chain
-# Condense a chat history and follow-up question into a standalone question
 _template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question,
 in its original language.
 Chat History:
@@ -177,7 +160,6 @@ Chat History:
 Follow Up Input: {question}
 Standalone question:"""  # noqa: E501
 CONDENSE_QUESTION_PROMPT = PromptTemplate.from_template(_template)
-
 
 def _format_chat_history(chat_history: List[Tuple[str, str]]) -> List:
     buffer = []
@@ -187,13 +169,11 @@ def _format_chat_history(chat_history: List[Tuple[str, str]]) -> List:
     return buffer
 
 
-# Create the RunnableBranch
 _search_query = RunnableBranch(
-    # If input includes chat_history, we condense it with the follow-up question
     (
         RunnableLambda(lambda x: bool(x.get("chat_history"))).with_config(
             run_name="HasChatHistoryCheck"
-        ),  # Condense follow-up question and chat into a standalone_question
+        ),
         RunnablePassthrough.assign(
             chat_history=lambda x: _format_chat_history(x["chat_history"])
         )
@@ -201,7 +181,6 @@ _search_query = RunnableBranch(
         | chat
         | StrOutputParser(),
     ),
-    # Else, we have no chat history, so just pass through the question
     RunnableLambda(lambda x: x["question"]),
 )
 
@@ -225,26 +204,24 @@ chain = (
     | StrOutputParser()
 )
 
-# TEST it all out!
-res_simple = chain.invoke(
-    {
-        "question": "Why does payment function is not stable?",
-    }
-)
-print(f"\n Results === {res_simple}\n\n")
+# Flask application
+app = Flask(__name__)
 
-# res_hist = chain.invoke(
-#     {
-#         "question": "When did he become the first emperor?",
-#         "chat_history": [
-#             ("Who was the first emperor?", "Augustus was the first emperor.")
-#         ],
-#     }
-# )
+@app.route("/")
+def index():
+    return render_template("index.html")
 
-# print(f"\n === {res_hist}\n\n")
+@app.route("/ask", methods=["POST"])
+def ask():
+    data = request.get_json()
+    question = data.get("question")
+    if not question:
+        return jsonify({"error": "No question provided"}), 400
 
+    response = chain.invoke({"question": question})
+    return jsonify({"answer": response})
 
 if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=5000)
 
-    pass
+# Run: `python app.py`

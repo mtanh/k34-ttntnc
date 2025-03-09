@@ -1,4 +1,5 @@
-"""Clean up the Knowledge Graph by removing all nodes and relationships."""
+# Description: This script is used to clean up the Neo4j Aura database.
+# It will delete all nodes, relationships, constraints, and indexes.
 
 from dotenv import load_dotenv
 import os
@@ -37,6 +38,7 @@ def clean_neo4j(session):
     for record in indexes:
         session.run(f"DROP INDEX {record['name']}")
     print("Dropped all indexes.")
+
 
 # Run cleanup
 with driver.session() as session:

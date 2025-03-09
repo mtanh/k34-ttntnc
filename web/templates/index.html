@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Support Q&A</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Customer Support Question Answering</h1>
+        <div class="input-section">
+            <textarea id="question" rows="4" placeholder="Enter your question here..."></textarea>
+            <button onclick="sendQuestion()">Send</button>
+        </div>
+        <div id="response" class="response-section">
+            <h3>Response:</h3>
+            <p id="answer"></p>
+        </div>
+    </div>
+
+    <script>
+        function sendQuestion() {
+            const question = document.getElementById('question').value;
+            if (question.trim() === '') {
+                alert('Please enter a question!');
+                return;
+            }
+
+            fetch('/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ question: question }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('answer').innerText = data.answer;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('answer').innerText = 'An error occurred. Please try again.';
+            });
+        }
+    </script>
+</body>
+</html>
