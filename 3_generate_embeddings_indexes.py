@@ -110,6 +110,7 @@ def create_vector_index(node_label, index_name, text_property):
             index_name=index_name,
             text_node_properties=[text_property],
             embedding_node_property="embedding",
+            # metadata_node_properties=["ticket_code"],  # No need to add metadata into index
         )
         print(
             f"Vector index '{index_name}' for label '{node_label}' created successfully."
@@ -139,6 +140,15 @@ def create_issue_summary_vector_index():
         }
         """
     )
+
+    with driver.session() as session:
+        session.run(
+            """
+            MATCH (t:Ticket)-[:HAS_SUMMARY]->(s:Summary)
+            SET s.ticket_code = t.code
+        """
+        )  # Set metadata (ticket.code) in Summary
+
     create_vector_index("Summary", "summary_embeddings", "summary")
 
 
@@ -161,6 +171,15 @@ def create_issue_description_vector_index():
         }
         """
     )
+
+    with driver.session() as session:
+        session.run(
+            """
+            MATCH (t:Ticket)-[:HAS_ISSUE_DESCRIPTION]->(id:IssueDescription)
+            SET id.ticket_code = t.code
+        """
+        )  # Set metadata (ticket.code) in IssueDescription
+
     create_vector_index(
         "IssueDescription", "issue_description_embeddings", "description"
     )
@@ -185,6 +204,15 @@ def create_step_reproduce_vector_index():
         }
         """
     )
+
+    with driver.session() as session:
+        session.run(
+            """
+            MATCH (t:Ticket)-[:HAS_STEPS_TO_REPRODUCE]->(sr:StepReproduce)
+            SET sr.ticket_code = t.code
+        """
+        )  # Set metadata (ticket.code) in StepReproduce
+
     create_vector_index("StepReproduce", "step_reproduce_embeddings", "step")
 
 
@@ -226,9 +254,9 @@ def test_vector_index(index_name, node_label, text_property, query_text):
 
 if __name__ == "__main__":
 
-    # create_issue_summary_vector_index()
-    # create_issue_description_vector_index()
-    # create_step_reproduce_vector_index()
+    create_issue_summary_vector_index()
+    create_issue_description_vector_index()
+    create_step_reproduce_vector_index()
 
     # _get_all_indexes()
     # test_vector_index(

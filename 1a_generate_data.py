@@ -1,4 +1,4 @@
-# Description: This script generates a diverse sample of 200 ticket records with unique
+# Description: This script generates a diverse sample of 100 ticket records with unique
 # content for each field. The records are saved in a CSV file 'tickets.csv'
 
 import csv
@@ -7,7 +7,7 @@ from datetime import datetime
 from datetime import timedelta
 import json
 
-codes = [f"ENT-{23000 + i}" for i in range(2000)]
+codes = [f"ENT-{23000 + i}" for i in range(50)]
 priorities = ["Critical", "High", "Medium", "Low", "Urgent"]
 root_causes = [
     "Network Failure",
@@ -278,7 +278,9 @@ def generate_random_ticket(ticket_id, used_content):
     ]
     comments = [{u: random.choice(comment_options)} for u in comment_users]
 
-    ref_options = lambda: f"ENT-{23000 + random.randint(0, 1999)}"
+    ref_options = (
+        lambda: f"ENT-{23000 + random.randint(0, 99)}"
+    )  # Changed range from 1999 to 99
     clone_from = (
         [ref_options() for _ in range(random.randint(0, 2))]
         if random.random() > 0.6
@@ -319,7 +321,7 @@ used_content = {
 }
 
 records = []
-for i in range(200):
+for i in range(50):
     try:
         record = generate_random_ticket(i, used_content)
         records.append(record)
@@ -342,11 +344,11 @@ headers = [
     "Similar_To",
 ]
 
-with open("tickets_200.csv", "w", newline="", encoding="utf-8") as f:
+with open("tickets_50.csv", "w", newline="", encoding="utf-8") as f:
     writer = csv.DictWriter(f, fieldnames=headers)
     writer.writeheader()
     writer.writerows(records)
 
 print(
-    f"Generated {len(records)} diverse sample records with unique content in 'tickets_200.csv'"
+    f"Generated {len(records)} diverse sample records with unique content in 'tickets_50.csv'"
 )

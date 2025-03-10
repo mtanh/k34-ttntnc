@@ -23,6 +23,7 @@ driver = GraphDatabase.driver(NEO4J_URI, auth=AUTH, database=NEO4J_DATABASE)
 
 CSV_FILE_NAME = os.environ["CSV_FILE_NAME"]
 
+
 # Function to connect and run a Cypher query
 def execute_query(driver, cypher_query, parameters=None):
     try:
@@ -284,7 +285,7 @@ def main():
     # to make sure all node was created, because
     # it is bi-direct connection.
     create_similar_to_relationship()
-    
+
     print("Graph populated successfully!")
 
 

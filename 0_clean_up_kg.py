@@ -40,10 +40,11 @@ def clean_neo4j(session):
     print("Dropped all indexes.")
 
 
-# Run cleanup
-with driver.session() as session:
-    clean_neo4j(session)
+if __name__ == "__main__":
+    # with driver.session() as session:
+    #     clean_neo4j(session=session)
 
-# Close connection
-driver.close()
-print("Neo4j Aura is fully cleaned.")
+    # driver.close()
+    # print("Neo4j Aura is fully cleaned.")
+    pass
+

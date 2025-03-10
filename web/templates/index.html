@@ -4,7 +4,97 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Customer Support Q&A</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .input-section {
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            font-size: 16px;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .response-section {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .response-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .response-section .group {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
+        .response-section .group h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .response-section .group div {
+            margin: 5px 0;
+            color: #555;
+        }
+        .response-section .standalone {
+            margin: 10px 0;
+            color: #555;
+        }
+        .response-section strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        .response-section pre {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .error {
+            color: #dc3545;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -15,7 +105,40 @@
         </div>
         <div id="response" class="response-section">
             <h3>Response:</h3>
-            <p id="answer"></p>
+            <div class="group" id="entities-group">
+                <h4>Entities</h4>
+                <div id="issue-summary">
+                    <strong>Issue Summary:</strong>
+                    <p id="issue-summary-content"></p>
+                </div>
+                <div id="issue-description">
+                    <strong>Issue Description:</strong>
+                    <p id="issue-description-content"></p>
+                </div>
+                <div id="intents">
+                    <strong>Intents:</strong>
+                    <p id="intents-content"></p>
+                </div>
+            </div>
+            <div class="group" id="subgraph-data-group">
+                <h4>Sub-graph Data</h4>
+                <div id="description">
+                    <strong>Description:</strong>
+                    <p id="description-content"></p>
+                </div>
+                <div id="steps-to-reproduce">
+                    <strong>Steps to Reproduce:</strong>
+                    <p id="steps-to-reproduce-content"></p>
+                </div>
+            </div>
+            <div class="standalone" id="ticket-id">
+                <strong>Ticket ID:</strong>
+                <p id="ticket-id-content"></p>
+            </div>
+            <div class="standalone" id="answer">
+                <strong>Answer:</strong>
+                <p id="answer-content"></p>
+            </div>
         </div>
     </div>
 
@@ -27,6 +150,15 @@
                 return;
             }
 
+            // Clear previous response
+            document.getElementById('issue-summary-content').innerText = '';
+            document.getElementById('issue-description-content').innerText = '';
+            document.getElementById('intents-content').innerText = '';
+            document.getElementById('ticket-id-content').innerText = '';
+            document.getElementById('description-content').innerText = '';
+            document.getElementById('steps-to-reproduce-content').innerText = '';
+            document.getElementById('answer-content').innerText = '';
+
             fetch('/ask', {
                 method: 'POST',
                 headers: {
@@ -36,13 +168,29 @@
             })
             .then(response => response.json())
             .then(data => {
-                document.getElementById('answer').innerText = data.answer;
+                // Check for errors in the response
+                if (data.error) {
+                    document.getElementById('answer-content').innerText = data.error;
+                    document.getElementById('answer-content').classList.add('error');
+                    return;
+                }
+
+                // Populate the response fields
+                document.getElementById('issue-summary-content').innerText = data.entities['issue summary'] || 'N/A';
+                document.getElementById('issue-description-content').innerText = data.entities['issue description'] || 'N/A';
+                document.getElementById('intents-content').innerText = data.intents.join(', ') || 'N/A';
+                document.getElementById('ticket-id-content').innerText = data.ticket_id || 'N/A';
+                document.getElementById('description-content').innerText = data.subgraph_data.description || 'N/A';
+                document.getElementById('steps-to-reproduce-content').innerText = data.subgraph_data['steps_to_reproduce'] || 'N/A';
+                document.getElementById('answer-content').innerText = data.answer || 'N/A';
             })
             .catch(error => {
                 console.error('Error:', error);
-                document.getElementById('answer').innerText = 'An error occurred. Please try again.';
+                document.getElementById('answer-content').innerText = 'An error occurred. Please try again.';
+                document.getElementById('answer-content').classList.add('error');
             });
         }
     </script>
+    <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'91df6f4b9eaeed7f',t:'MTc0MTU3NDI5NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>

@@ -9,13 +9,15 @@ import random
 INPUT_CSV_PATH = "tickets_50.csv"
 OUTPUT_CSV_PATH = "tickets_50.clock"
 
+
 def load_tickets_from_csv(file_path):
     tickets = []
-    with open(file_path, newline='', encoding='utf-8') as csvfile:
+    with open(file_path, newline="", encoding="utf-8") as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             tickets.append(row)
     return tickets
+
 
 def generate_random_tickets(current_code, total_tickets, min_refs=1, max_refs=3):
     # Generate a list of all ticket codes (ENT-23000 to ENT-23199)
@@ -26,6 +28,7 @@ def generate_random_tickets(current_code, total_tickets, min_refs=1, max_refs=3)
     num_refs = random.randint(min_refs, max_refs)
     selected_codes = random.sample(all_codes, min(num_refs, len(all_codes)))
     return selected_codes
+
 
 def update_relationships(tickets):
     for ticket in tickets:
@@ -46,12 +49,14 @@ def update_relationships(tickets):
         ticket["Clone_To"] = json.dumps(list(dict.fromkeys(new_clone_to))[:5])
         ticket["Similar_To"] = json.dumps(list(dict.fromkeys(new_similar_to))[:5])
 
+
 def save_updated_tickets(tickets):
     fieldnames = tickets[0].keys()
-    with open(OUTPUT_CSV_PATH, mode='w', newline='', encoding='utf-8') as csvfile:
+    with open(OUTPUT_CSV_PATH, mode="w", newline="", encoding="utf-8") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(tickets)
+
 
 def main():
     # Load tickets from CSV
@@ -63,6 +68,7 @@ def main():
     # Save updated tickets to a new CSV file
     save_updated_tickets(tickets)
     print(f"Updated tickets saved to {OUTPUT_CSV_PATH}")
+
 
 if __name__ == "__main__":
     main()
