@@ -1,1 +1,1 @@
-<!-- Retrieval-Augmented Generation with Knowledge Graphs for Customer Service Question Answering -->
+Implement the proposals from paper Zhentao Xu, Mark Jerome Cruz, Matthew Guevara, Tie Wang, Manasi Deshpande, Xiaofeng Wang, Zheng Li. Retrieval-Augmented Generation with Knowledge Graphs for Customer Service Question Answering. 6 May 2024
